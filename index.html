@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>搶救聲命線 - 莫蘭迪純享版 V51</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "morandi-red": "#C2948A",    // 豆沙紅
+                        "morandi-green": "#96A48B",  // 灰豆綠
+                        "morandi-blue": "#899BA9",   // 霧霾藍
+                        "morandi-yellow": "#D6BD96", // 奶油黃
+                        "morandi-dark": "#46494C",   // 深石色
+                        "morandi-bg": "#E5E1DA",     // 淺石色
+                        "exam-purple": "#A6A9C8"     // 薰衣草紫
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Noto Sans TC', 'Lexend', sans-serif; background-color: #E5E1DA; overflow: hidden; color: #46494C; }
+        
+        .mario-block {
+            background: #FBF9F1;
+            border: 3px solid #46494C;
+            box-shadow: 6px 6px 0px rgba(70, 73, 76, 0.2);
+            position: absolute; 
+            transition: box-shadow 0.2s;
+            border-radius: 16px;
+        }
+
+        .drag-handle {
+            cursor: move;
+            background: #B4B4B8;
+            color: white;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid #46494C;
+            border-top-left-radius: 13px;
+            border-top-right-radius: 13px;
+        }
+
+        .mario-btn {
+            transition: all 0.1s;
+            border: 3px solid #46494C;
+            box-shadow: 4px 4px 0px rgba(70, 73, 76, 0.2);
+            font-weight: 900;
+            border-radius: 10px;
+        }
+        .mario-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
+        .mario-btn:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+
+        .pipe-container {
+            background: #D8D9DA;
+            border: 2px solid #46494C;
+            height: 20px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 99px;
+        }
+        .pipe-fill {
+            height: 100%;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #96A48B;
+            border-right: 2px solid #46494C;
+        }
+
+        .dice-box {
+            width: 120px; height: 120px;
+            background: white; border: 4px solid #46494C;
+            border-radius: 20px; display: flex; align-items: center;
+            justify-content: center; font-size: 5rem; font-weight: 900;
+            box-shadow: 10px 10px 0px rgba(70, 73, 76, 0.1);
+        }
+        .dice-rolling { animation: roll-spin 0.15s infinite linear; }
+        @keyframes roll-spin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .chance-card {
+            border: 2px solid #46494C;
+            box-shadow: 4px 4px 0px rgba(70, 73, 76, 0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+            border-radius: 12px;
+            background: white;
+        }
+        .chance-card:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 6px 6px 0px rgba(70, 73, 76, 0.15); }
+        .chance-card.disabled { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; }
+
+        .modal-overlay { background: rgba(70, 73, 76, 0.7); backdrop-blur: 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #B4B4B8; border-radius: 10px; }
+        .coop-glow { box-shadow: 0 0 20px rgba(137, 155, 169, 0.5); border: 4px solid #899BA9 !important; }
+    </style>
+</head>
+<body class="p-4 h-screen">
+
+<!-- 1. 身分選擇器 -->
+<div id="setup-modal" class="fixed inset-0 z-[9000] modal-overlay flex items-center justify-center p-4">
+    <div class="bg-[#FBF9F1] mario-block p-10 max-w-xl w-full text-center" style="position:relative !important; left:auto; top:auto;">
+        <h1 class="text-4xl font-black mb-2 tracking-tighter text-morandi-dark italic">搶救聲命線</h1>
+        <p class="text-xs font-bold text-slate-400 mb-8 tracking-widest border-b-2 border-slate-100 pb-4">專業嗓音國考競技系統</p>
+        
+        <div class="space-y-3 mb-8 text-left">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">1. 確認隊伍名稱</p>
+            <div class="flex items-center gap-3 bg-white p-3 border-2 border-morandi-dark rounded-xl">
+                <span class="text-xl">🟦</span>
+                <input type="text" id="name-0" value="聲命搶救隊" class="bg-transparent font-bold outline-none w-full text-morandi-dark">
+            </div>
+            <div class="flex items-center gap-3 bg-white p-3 border-2 border-morandi-dark rounded-xl">
+                <span class="text-xl">🟥</span>
+                <input type="text" id="name-1" value="喉來居上隊" class="bg-transparent font-bold outline-none w-full text-morandi-dark">
+            </div>
+            <div class="flex items-center gap-3 bg-white p-3 border-2 border-morandi-dark rounded-xl">
+                <span class="text-xl">🟩</span>
+                <input type="text" id="name-2" value="聲東擊西隊" class="bg-transparent font-bold outline-none w-full text-morandi-dark">
+            </div>
+        </div>
+
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-left">2. 選擇您的身分進入</p>
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="pickRole(0)" class="w-full py-4 bg-morandi-blue text-white mario-btn text-lg">進入 🟦 隊伍視角</button>
+            <button onclick="pickRole(1)" class="w-full py-4 bg-morandi-red text-white mario-btn text-lg">進入 🟥 隊伍視角</button>
+            <button onclick="pickRole(2)" class="w-full py-4 bg-morandi-green text-white mario-btn text-lg">進入 🟩 隊伍視角</button>
+            <button onclick="pickRole('admin')" class="w-full py-2 bg-morandi-dark text-white mario-btn text-sm font-bold mt-2">🔘 管理員 / 講師模式</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 全局計分板 -->
+<header id="global-header" class="max-w-[1750px] w-full mx-auto mb-6 grid grid-cols-12 gap-6 shrink-0 relative z-10">
+    <div class="col-span-3 bg-white border-2 border-morandi-dark p-4 flex items-center justify-between shadow-sm rounded-2xl">
+        <h1 class="text-xl font-black text-morandi-red italic">搶救狀態</h1>
+        <div id="game-timer" class="text-3xl font-black bg-morandi-yellow px-4 border-2 border-morandi-dark rounded-lg">40:00</div>
+    </div>
+    <div id="global-scoreboard" class="col-span-9 flex gap-4"></div>
+</header>
+
+<!-- 3. 主場景 -->
+<main class="relative h-full w-full">
+    <!-- 左面板：隊伍儀表板 -->
+    <aside id="panel-left" class="mario-block flex flex-col w-[420px] h-[720px] z-[50]" style="left: 20px; top: 0px;">
+        <div class="drag-handle">
+            <div class="flex gap-2">
+                <div class="w-3 h-3 rounded-full bg-morandi-red border border-morandi-dark"></div>
+                <div class="w-3 h-3 rounded-full bg-morandi-yellow border border-morandi-dark"></div>
+                <div class="w-3 h-3 rounded-full bg-morandi-green border border-morandi-dark"></div>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">小組控制台</span>
+        </div>
+        
+        <div class="p-6 flex-1 flex flex-col relative overflow-hidden">
+            <!-- 觀戰遮罩 -->
+            <div id="spectator-overlay" class="hidden absolute inset-0 bg-white/90 z-[60] flex flex-col items-center justify-center text-center p-10">
+                <div class="text-6xl mb-4 animate-bounce">🧘</div>
+                <p class="font-black text-3xl border-4 border-morandi-dark p-6 bg-morandi-bg/50 leading-tight rounded-2xl">觀戰模式中</p>
+                <p class="text-xs text-slate-400 mt-4 font-bold">目前由其他組別主控題目...</p>
+            </div>
+
+            <div class="flex justify-between items-start mb-6 shrink-0">
+                <div class="w-3/4">
+                    <p id="turn-status-label" class="text-[10px] font-black uppercase tracking-widest bg-morandi-dark text-white px-2 py-0.5 inline-block mb-2 rounded">正在作答</p>
+                    <h3 id="current-team-name" class="font-black text-4xl leading-tight truncate text-morandi-dark tracking-tighter">---</h3>
+                </div>
+                <button id="hint-btn" onclick="openHint()" disabled class="w-20 h-24 bg-morandi-blue text-white mario-btn flex flex-col items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl">emoji_objects</span>
+                    <span class="text-[10px] font-black uppercase">提示卡</span>
+                </button>
+            </div>
+
+            <p class="text-sm font-black mb-4 flex items-center gap-2 border-b border-morandi-dark/10 pb-2 shrink-0">
+                <span class="material-symbols-outlined text-lg">style</span> 策略功能卡 (一回一張)
+            </p>
+            <div id="card-grid" class="grid grid-cols-1 gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-4"></div>
+
+            <div class="mt-auto bg-morandi-dark border-2 border-morandi-dark p-4 shrink-0 h-32 flex flex-col rounded-xl">
+                <p class="text-[10px] font-black text-morandi-yellow uppercase tracking-widest mb-1 italic">🍄 戰況日誌</p>
+                <div id="battle-log" class="flex-1 text-[11px] font-bold text-white/70 overflow-y-auto custom-scrollbar italic leading-snug">
+                    > 系統啟動中...
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主面板：任務區 -->
+    <section id="panel-main" class="mario-block flex flex-col w-[950px] h-[720px] z-[40]" style="left: 460px; top: 0px; background:#F5F5F5;">
+        <div class="drag-handle" style="background:#96A48B;">
+            <div class="flex gap-2">
+                <div class="w-3 h-3 rounded-full bg-white border border-morandi-dark"></div>
+                <div class="w-3 h-3 rounded-full bg-white border border-morandi-dark"></div>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">任務控制中心</span>
+        </div>
+
+        <div class="p-10 flex-1 flex flex-col relative overflow-hidden">
+            <div id="ans-timer" class="absolute top-8 right-8 w-24 h-24 bg-white border-4 border-morandi-red rounded-full flex items-center justify-center font-black text-4xl shadow-xl text-morandi-red">90</div>
+            
+            <div id="mission-body" class="flex-1 flex flex-col items-center justify-center text-center">
+                <div id="draw-prompt" class="w-80 h-[500px] bg-white border-4 border-morandi-dark p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all shadow-[12px_12px_0px_rgba(70,73,76,0.1)] active:scale-95 group rounded-[32px]" onclick="drawTask()">
+                    <div class="text-[120px] mb-8 group-hover:rotate-12 transition-transform">❓</div>
+                    <p class="text-5xl font-black text-center mb-6 leading-none text-morandi-dark">擊打方塊<br><span class="text-xl mt-4 block underline decoration-2 italic">抽取挑戰</span></p>
+                    <p id="pool-count" class="text-xs font-black bg-slate-100 px-6 py-2 border border-morandi-dark uppercase rounded-full">載入題庫中...</p>
+                </div>
+            </div>
+
+            <!-- 搶答遮罩 -->
+            <div id="steal-overlay" class="hidden absolute inset-0 z-[2000] flex items-center justify-center bg-morandi-red/20 backdrop-blur-md rounded-[32px]">
+                <div class="bg-white border-8 border-morandi-dark p-16 text-center shadow-[30px_30px_0px_rgba(70,73,76,0.2)] modal-pop rounded-[40px]">
+                    <p class="text-morandi-red font-black text-7xl mb-12 italic tracking-tighter uppercase">開始搶答！</p>
+                    <div class="flex flex-col items-center gap-10">
+                        <div id="steal-countdown" class="w-40 h-40 bg-morandi-red text-white border-8 border-morandi-dark flex items-center justify-center text-8xl font-black shadow-2xl rounded-full">5</div>
+                        <div id="steal-buttons" class="flex gap-8"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 各類彈窗 -->
+<div id="confirm-modal" class="fixed inset-0 z-[9500] modal-overlay hidden items-center justify-center p-4">
+    <div class="bg-white border-[6px] border-morandi-dark p-10 max-w-xl w-full text-center shadow-[20px_20px_0px_rgba(0,0,0,0.1)] modal-pop rounded-[32px]">
+        <h2 class="text-4xl font-black mb-6 italic text-morandi-blue uppercase">功能卡啟動！</h2>
+        <div id="confirm-card-content" class="bg-slate-50 border-2 border-dashed border-morandi-dark p-6 mb-8 rounded-2xl">
+            <p id="confirm-card-name" class="text-3xl font-black underline mb-2 text-morandi-dark"></p>
+            <p id="confirm-card-desc" class="text-slate-500 text-lg font-bold"></p>
+        </div>
+        <div class="flex gap-6">
+            <button onclick="closeConfirmModal()" class="flex-1 py-5 border-2 border-morandi-dark font-black text-xl bg-slate-200 mario-btn">再考慮一下</button>
+            <button id="btn-confirm-use" class="flex-1 py-5 bg-morandi-yellow border-2 border-morandi-dark font-black text-xl mario-btn">確定發動！</button>
+        </div>
+    </div>
+</div>
+
+<div id="dice-modal" class="fixed inset-0 z-[8500] bg-morandi-dark/95 hidden items-center justify-center p-6">
+    <div class="bg-[#FBF9F1] border-8 border-morandi-dark p-20 max-w-2xl w-full text-center shadow-[40px_40px_0px_rgba(0,0,0,0.2)] modal-pop rounded-[48px]">
+        <h2 id="dice-title" class="text-6xl font-black mb-8 uppercase tracking-tighter italic text-morandi-dark">判定結果</h2>
+        <p id="roll-status-msg" class="text-morandi-red font-black text-3xl mb-12 h-10 underline decoration-4"></p>
+        <div class="flex justify-center mb-16">
+            <div id="dice-cube" class="dice-box">?</div>
+        </div>
+        <button id="roll-btn" onclick="executeRoll()" class="w-full py-10 bg-morandi-red text-white mario-btn font-black text-5xl">擲骰！</button>
+    </div>
+</div>
+
+<div id="hint-modal" class="fixed inset-0 z-[9200] modal-overlay hidden items-center justify-center p-4">
+    <div class="bg-white border-8 border-morandi-dark p-16 max-w-2xl w-full text-center shadow-[25px_25px_0px_rgba(0,0,0,0.1)] rounded-[40px]">
+        <h2 class="text-5xl font-black mb-10 italic text-morandi-blue uppercase tracking-widest">秘密提示</h2>
+        <p id="hint-text-display" class="text-3xl font-bold leading-relaxed mb-12 italic text-morandi-dark"></p>
+        <button onclick="document.getElementById('hint-modal').style.display='none'" class="w-full py-8 bg-morandi-blue text-white mario-btn font-black text-3xl">確認！</button>
+    </div>
+</div>
+
+<script>
+const originalTaskPool = [
+    { type: "109 國考題", q: "聲帶振動中，主要負責調節音高（Pitch）變化的主要肌肉是哪一塊？", opts: ["環甲肌", "環杓後肌", "環杓側肌", "甲杓肌"], a: 0, ref: "環甲肌 (CT) 負責拉長聲帶。", hint: "這塊肌肉連接口腔下方與甲狀軟骨。", fakeHint: "提示：關鍵在於控制聲帶『寬度』的肌肉，通常是側向肌肉。" },
+    { type: "112 國考題", q: "Jitter（頻率攝動）反映的是聲帶振動的哪一項特質？", opts: ["振幅穩定性", "頻率穩定性", "共鳴強弱", "聲門下壓"], a: 1, ref: "Jitter 反映週期的微小變異。", hint: "與週期 (Period) 的微小時間變動有關。", fakeHint: "提示：Jitter 主要是觀察聲波『能量大小』的波動。" },
+    { type: "108 國考題", q: "單側返喉神經（RLN）受損後，患側聲帶通常會停在哪個位置？", opts: ["正中位", "中間偏側", "全外展位", "全內收位"], a: 1, ref: "中間偏側位置 (Paramedian position)。", hint: "這是一個既非完全打開也非完全閉合的『曖昧』位置。", fakeHint: "提示：麻痺通常會讓肌肉完全無力，導致聲帶垂向『正中央』。" },
+    { type: "113 國考題", q: "Reinke's edema 最主要的致病危險因子為何？", opts: ["病毒感染", "長期大量抽菸", "內分泌失調", "過敏性鼻炎"], a: 1, ref: "菸草焦油會直接刺激任克氏空間。", hint: "這種病變常出現在菸癮極重的女性身上。", fakeHint: "提示：此病變主要與女性更年期雌激素下降有關。" },
+    { type: "迷思題", q: "常清喉嚨對聲帶不會有傷害，反而可以讓聲音更清楚。", a: false, ref: "❌ 錯誤。清喉嚨是劇烈的聲帶撞擊，會加重損傷。", hint: "這是一種類似強烈咳嗽的猛烈撞擊行為。", fakeHint: "提示：適度的清喉嚨能幫助排掉多餘黏液，降低震動阻力。" },
+    { type: "實戰題", q: "【治療演示】請示範哈欠－嘆氣法步驟。", a: true, ref: "利用喉部生理性下降，放鬆嗓音。", hint: "核心目標是讓喉頭位置『物理性地下降』。", fakeHint: "提示：重點在於用力吸氣後憋氣，增加下壓爆發力。" }
+];
+
+const cardAssets = [
+    { id: 1, name: "佛系答題卡", rules: "⚖️ 取消時間限制。", icon: "self_improvement", color: "#FFE2E2" },
+    { id: 2, name: "臨床互助卡", rules: "⚖️ 指定另一組共答。雙方皆可操作。", icon: "handshake", color: "#CEE6D0" },
+    { id: 3, name: "雙重挑戰卡", rules: "⚖️ 連答兩題。全對兩次擲骰。", icon: "layers", color: "#E0F7FA" },
+    { id: 4, name: "代罪羔羊卡", rules: "⚖️ 對方替答。對：我加；錯：他扣。", icon: "psychiatry", color: "#FFF9C4" },
+    { id: 5, name: "臨床躺分卡", rules: "⚖️ 指定答題。對：皆加；錯：我免扣，他扣。", icon: "airline_seat_flat", color: "#F3E5F5" },
+    { id: 6, name: "隨機幸運卡", rules: "⚖️ 答對後可額外擲骰一次加分。", icon: "auto_fix_high", color: "#E8F5E9" },
+    { id: 7, name: "風險倍增卡", rules: "⚖️ 盈虧皆變為 2 倍。不可併用口罩。", icon: "trending_up", color: "#FFDDEE" },
+    { id: 8, name: "口罩保護卡", rules: "⚖️ 失敗不扣分。不影響他人。", icon: "shield", color: "#DDEEFF" },
+    { id: 9, name: "轉介丟包卡", rules: "⚖️ 題目轉讓。盈虧由對方承擔。", icon: "output", color: "#FFEBEE" },
+    { id: 10, name: "心理誤導卡", rules: "⚖️ 系統自動隨機讓一支敵隊收到假提示。", icon: "psychology_alt", color: "#FFF3E0" },
+    { id: 12, name: "指定中獎卡", rules: "⚖️ 指定某組回答該題。", icon: "ads_click", color: "#F9FBE7" },
+    { id: 13, name: "時間緊迫卡", rules: "⚖️ 指定或本組縮短至 60 秒。", icon: "speed", color: "#FCE4EC" }
+];
+
+let state = {
+    teams: [], activeTurnIdx: 0, actingTeamIdx: 0, scoringTeams: [],
+    gameTime: 40 * 60, ansTimer: 90, timerInt: null,
+    currentTask: null, isStealing: false, hasBeenStolen: false,
+    cardActive: null, cardTargetIdx: null, isSpectating: false,
+    doubleChallenge: false, doubleCount: 0,
+    taskPool: [...originalTaskPool],
+    isCoopMode: false, mustStealAfterDice: false,
+    pendingExtraRolls: 0, riskMode: false, maskProtected: false,
+    cardUsedThisTurn: false, userRole: null, timerStarted: false
+};
+
+function pickRole(role) {
+    state.userRole = role;
+    initGame();
+}
+
+function speak(text) {
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = 'zh-TW'; msg.rate = 1.0;
+    window.speechSynthesis.speak(msg);
+}
+
+function initGame() {
+    const shuffledCards = [...cardAssets].sort(() => Math.random() - 0.5);
+    state.teams = [];
+    for(let i=0; i<3; i++) {
+        state.teams.push({
+            id: i, name: document.getElementById(`name-${i}`).value, ml: 10,
+            cards: shuffledCards.slice(i*4, (i+1)*4).map(c => ({...c, used: false})),
+            isEliminated: false, hintCardUsed: false, misledBy: null
+        });
+    }
+    document.getElementById('setup-modal').classList.add('hidden');
+    makeDraggable(document.getElementById("panel-left"));
+    makeDraggable(document.getElementById("panel-main"));
+
+    if (!state.timerStarted) {
+        state.timerStarted = true;
+        setInterval(() => {
+            if(state.gameTime > 0) {
+                state.gameTime--;
+                const m = Math.floor(state.gameTime / 60);
+                const s = state.gameTime % 60;
+                document.getElementById('game-timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+            }
+        }, 1000);
+    }
+    updateUI();
+    logBattle(`🍄 玩家 [${state.userRole === 'admin' ? '管理員' : state.teams[state.userRole].name}] 已就緒！`);
+}
+
+function updateUI() {
+    const scoreboard = document.getElementById('global-scoreboard');
+    if (!scoreboard) return;
+    scoreboard.innerHTML = state.teams.map((t, i) => {
+        let activeClass = '';
+        if (state.isCoopMode) {
+            if (i === state.activeTurnIdx || i === state.cardTargetIdx) activeClass = 'coop-glow scale-105';
+        } else if (i === state.actingTeamIdx) {
+            activeClass = 'ring-4 ring-morandi-red scale-105';
+        }
+        return `
+            <div class="flex-1 bg-white p-4 border-2 border-morandi-dark ${t.isEliminated ? 'opacity-30' : activeClass} transition-all rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center mb-1 text-slate-800">
+                    <span class="text-2xl">${i===0?'🟦':i===1?'🟥':'🟩'}</span>
+                    <span class="font-black text-2xl">${t.ml} 毫升</span>
+                </div>
+                <div class="text-[9px] font-bold truncate text-slate-400 uppercase">${t.name}</div>
+                <div class="pipe-container mt-1"><div class="pipe-fill" style="width: ${Math.min(100, t.ml * 10)}%"></div></div>
+            </div>
+        `;
+    }).join('');
+
+    const overlay = document.getElementById('spectator-overlay');
+    if (overlay) {
+        const isMyTurn = state.userRole === state.activeTurnIdx;
+        const isAdmin = state.userRole === 'admin';
+        overlay.classList.toggle('hidden', isMyTurn || isAdmin || state.isStealing || state.isCoopMode);
+    }
+
+    const cardGridEl = document.getElementById('card-grid');
+    if (cardGridEl && state.userRole !== 'admin') {
+        const myTeam = state.teams[state.userRole];
+        cardGridEl.innerHTML = myTeam.cards.map((c, i) => `
+            <div onclick="handleCardClick(${i})" class="chance-card p-3 flex flex-col gap-1 ${c.used || (state.cardUsedThisTurn && state.activeTurnIdx === state.userRole) ? 'disabled' : ''}">
+                <div class="flex items-center gap-2 text-morandi-dark">
+                    <span class="material-symbols-outlined text-xl">${c.icon}</span>
+                    <span class="font-black text-sm uppercase">${c.name}</span>
+                </div>
+                <p class="text-[9px] font-bold text-slate-400 leading-tight">${c.rules}</p>
+            </div>
+        `).join('');
+    } else if (cardGridEl && state.userRole === 'admin') {
+        cardGridEl.innerHTML = `<p class="text-center text-slate-400 italic py-10">講師主控模式：監看全局狀態</p>`;
+    }
+
+    if (document.getElementById('current-team-name')) {
+        document.getElementById('current-team-name').innerText = state.isStealing ? "⚡ 搶答中！" : state.teams[state.activeTurnIdx].name;
+    }
+    if (document.getElementById('pool-count')) {
+        document.getElementById('pool-count').innerText = `剩餘：${state.taskPool.length} 題`;
+    }
+    const hintBtn = document.getElementById('hint-btn');
+    if(hintBtn) hintBtn.disabled = (state.currentTask === null || state.teams[state.activeTurnIdx].hintCardUsed);
+}
+
+function handleCardClick(idx) {
+    if(state.cardUsedThisTurn) return;
+    if(state.userRole !== state.activeTurnIdx && state.userRole !== 'admin') return;
+
+    const team = state.teams[state.activeTurnIdx];
+    const card = team.cards[idx];
+    
+    if(card.id === 10) {
+        const enemies = state.teams.filter((t, i) => i !== state.activeTurnIdx && !t.isEliminated);
+        if(enemies.length > 0) {
+            useCard(idx, enemies[Math.floor(Math.random() * enemies.length)].id);
+        }
+        return;
+    }
+
+    const needsTarget = [2, 4, 5, 9, 12, 13].includes(card.id);
+    if(needsTarget) {
+        showTargetSelection(idx);
+    } else {
+        openConfirmModal(idx, null);
+    }
+}
+
+function showTargetSelection(cardIdx) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 z-[9600] modal-overlay flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white border-4 border-morandi-dark p-8 max-w-md w-full text-center rounded-[32px] shadow-2xl">
+            <h2 class="text-2xl font-black mb-6 italic uppercase">選擇施放對象</h2>
+            <div class="space-y-3">
+                ${state.teams.map((t, i) => {
+                    if(i === state.activeTurnIdx || t.isEliminated) return '';
+                    return `<button onclick="this.parentElement.parentElement.parentElement.remove(); openConfirmModal(${cardIdx}, ${i})" class="w-full py-4 bg-morandi-green text-white mario-btn font-black text-xl">
+                        ${i===0?'🟦':i===1?'🟥':'🟩'} ${t.name}
+                    </button>`;
+                }).join('')}
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="mt-6 font-black text-slate-400 uppercase underline">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function openConfirmModal(cardIdx, targetIdx) {
+    const card = state.teams[state.activeTurnIdx].cards[cardIdx];
+    document.getElementById('confirm-card-name').innerText = card.name;
+    document.getElementById('confirm-card-desc').innerText = card.rules;
+    document.getElementById('btn-confirm-use').onclick = function() {
+        useCard(cardIdx, targetIdx);
+        closeConfirmModal();
+    };
+    document.getElementById('confirm-modal').style.display = 'flex';
+}
+
+function closeConfirmModal() { document.getElementById('confirm-modal').style.display = 'none'; }
+
+function useCard(cardIdx, targetIdx) {
+    const team = state.teams[state.activeTurnIdx];
+    const card = team.cards[cardIdx];
+    card.used = true;
+    state.cardUsedThisTurn = true; 
+    state.cardActive = card.id;
+    state.cardTargetIdx = targetIdx;
+    
+    if(card.id === 10) {
+        state.teams[targetIdx].misledBy = state.activeTurnIdx;
+        logBattle(`✨ 心理誤導已埋設至某組。`);
+    } else {
+        logBattle(`✨【${team.name}】使用：${card.name}`);
+    }
+
+    if(card.id === 1) { clearInterval(state.timerInt); document.getElementById('ans-timer').innerText = "∞"; }
+    if(card.id === 2) { state.isCoopMode = true; state.actingTeamIdx = null; }
+    if(card.id === 3) { state.doubleChallenge = true; state.doubleCount = 0; }
+    if(card.id === 7) state.riskMode = true;
+    if(card.id === 8) state.maskProtected = true;
+    if([4, 5, 9, 12].includes(card.id)) { state.actingTeamIdx = targetIdx; state.isSpectating = true; }
+    updateUI();
+}
+
+function drawTask() {
+    if (state.userRole !== state.activeTurnIdx && state.userRole !== 'admin') return;
+    if (state.taskPool.length === 0) return;
+    const randomIdx = Math.floor(Math.random() * state.taskPool.length);
+    const task = state.taskPool.splice(randomIdx, 1)[0];
+    state.currentTask = task;
+    if (state.actingTeamIdx === null && !state.isCoopMode) state.actingTeamIdx = state.activeTurnIdx;
+    
+    speak(task.q);
+    renderTaskBody(task);
+    startAnsTimer();
+    updateUI(); 
+}
+
+function renderTaskBody(task) {
+    let taskHTML = `<div class="bg-white border-2 border-morandi-dark p-10 w-full max-w-3xl rounded-[32px] shadow-sm">
+            <span class="bg-exam-purple text-white px-6 py-2 border-2 border-morandi-dark font-black mb-6 inline-block italic rounded-full">
+                ${task.type}
+            </span>
+            <h2 class="text-3xl font-black leading-tight mb-10 text-morandi-dark">${task.q}</h2>`;
+
+    if(task.opts) {
+        taskHTML += `<div class="grid grid-cols-1 gap-4">`;
+        task.opts.forEach((opt, i) => {
+            taskHTML += `<button onclick="confirmTask(${i === task.a})" class="p-6 bg-white border-2 border-morandi-dark hover:bg-morandi-yellow font-black text-xl mario-btn transition-all text-left flex gap-4">
+                <span class="opacity-30">選項 ${String.fromCharCode(65+i)}</span> ${opt}</button>`;
+        });
+        taskHTML += `</div>`;
+    } else {
+        taskHTML += `<div class="flex gap-6">
+            <button onclick="confirmTask(true)" class="flex-1 py-10 bg-morandi-green text-white mario-btn font-black text-4xl">正確</button>
+            <button onclick="confirmTask(false)" class="flex-1 py-10 bg-morandi-red text-white mario-btn font-black text-4xl">錯誤</button>
+        </div>`;
+    }
+    taskHTML += `</div>`;
+    document.getElementById('mission-body').innerHTML = taskHTML;
+}
+
+function confirmTask(isSuccess) {
+    clearInterval(state.timerInt);
+    if(isSuccess) {
+        if(state.doubleChallenge) {
+            state.doubleCount++;
+            if(state.doubleCount < 2) { logBattle("🦾 第一關成功！續抽下一題。"); setTimeout(drawTask, 1000); return; }
+            state.pendingExtraRolls = 1; state.doubleChallenge = false;
+        }
+        state.scoringTeams = (state.cardActive === 4) ? [state.activeTurnIdx] : (state.isCoopMode || state.cardActive === 5) ? [state.activeTurnIdx, state.cardTargetIdx] : [state.actingTeamIdx || state.activeTurnIdx];
+        openDiceModal('plus');
+    } else {
+        state.scoringTeams = (state.cardActive === 5 || state.cardActive === 4) ? [state.cardTargetIdx] : (state.isCoopMode) ? [state.activeTurnIdx, state.cardTargetIdx] : [state.actingTeamIdx || state.activeTurnIdx];
+        state.mustStealAfterDice = !state.isStealing && !state.hasBeenStolen;
+        openDiceModal('minus');
+    }
+}
+
+function openDiceModal(mode) {
+    state.diceMode = mode;
+    document.getElementById('dice-modal').style.display = 'flex';
+    document.getElementById('dice-cube').innerText = "?";
+    document.getElementById('roll-btn').disabled = false;
+    document.getElementById('roll-status-msg').innerText = mode==='plus'?'🌟 獎勵環節':'💀 懲罰環節';
+}
+
+function executeRoll() {
+    const cube = document.getElementById('dice-cube');
+    const rollBtn = document.getElementById('roll-btn');
+    rollBtn.disabled = true;
+    cube.classList.add('dice-rolling');
+    
+    setTimeout(() => {
+        let val = Math.floor(Math.random() * 6) + 1;
+        cube.innerText = val;
+        cube.classList.remove('dice-rolling');
+        let mult = state.riskMode ? 2 : 1;
+        if(state.diceMode === 'minus' && state.maskProtected) { val = 0; mult = 1; logBattle("🛡️ 口罩生效！免傷。"); state.maskProtected = false; }
+
+        const change = (state.diceMode === 'plus' ? val : -val) * mult;
+        state.scoringTeams.forEach(tid => {
+            state.teams[tid].ml = Math.max(0, state.teams[tid].ml + change);
+            if(state.teams[tid].ml <= 0) state.teams[tid].isEliminated = true;
+        });
+        updateUI();
+
+        const survivors = state.teams.filter(t => !t.isEliminated);
+        if (survivors.length <= 1) {
+            setTimeout(() => { document.getElementById('dice-modal').style.display = 'none'; endGame(survivors[0]?.name || '和局'); }, 1500);
+            return;
+        }
+        
+        setTimeout(() => {
+            if((state.cardActive === 6 || state.pendingExtraRolls > 0) && state.diceMode === 'plus') {
+                if (state.pendingExtraRolls > 0) state.pendingExtraRolls--; else state.cardActive = null;
+                cube.innerText = "?"; rollBtn.disabled = false; return;
+            }
+            document.getElementById('dice-modal').style.display = 'none';
+            if(state.mustStealAfterDice) { state.mustStealAfterDice = false; startStealCountdown(); }
+            else { finishTurn(); }
+        }, 1500);
+    }, 1200);
+}
+
+function startStealCountdown() {
+    document.getElementById('steal-overlay').classList.remove('hidden');
+    let sTime = 5;
+    const int = setInterval(() => {
+        sTime--; document.getElementById('steal-countdown').innerText = sTime;
+        if(sTime <= 0) { clearInterval(int); document.getElementById('steal-overlay').classList.add('hidden'); finishTurn(); }
+    }, 1000);
+
+    document.getElementById('steal-buttons').innerHTML = state.teams.map((t, i) => {
+        if(i === state.actingTeamIdx || t.isEliminated) return '';
+        return `<button onclick="triggerSteal(${i}, ${int})" class="px-10 py-6 bg-morandi-red text-white mario-btn font-black text-2xl shadow-xl">我是 ${t.name}！我來搶！</button>`;
+    }).join('');
+}
+
+function triggerSteal(idx, intervalId) {
+    clearInterval(intervalId);
+    state.isStealing = true; state.hasBeenStolen = true; state.actingTeamIdx = idx;
+    document.getElementById('steal-overlay').classList.add('hidden');
+    state.isCoopMode = false; state.ansTimer = 60;
+    logBattle(`⚡【${state.teams[idx].name}】搶到了答題權！`);
+    startAnsTimer(); updateUI();
+}
+
+function startAnsTimer() {
+    clearInterval(state.timerInt);
+    state.timerInt = setInterval(() => {
+        if(state.ansTimer > 0) {
+            state.ansTimer--; 
+            document.getElementById('ans-timer').innerText = state.ansTimer; 
+        } else { confirmTask(false); }
+    }, 1000);
+}
+
+function openHint() {
+    const team = state.teams[state.activeTurnIdx];
+    team.hintCardUsed = true;
+    const txt = document.getElementById('hint-text-display');
+    txt.innerText = team.misledBy !== null ? state.currentTask.fakeHint : state.currentTask.hint;
+    document.getElementById('hint-modal').style.display = 'flex';
+    updateUI();
+}
+
+function finishTurn() {
+    document.getElementById('mission-body').innerHTML = `<button onclick="nextTurn()" class="px-24 py-10 bg-morandi-blue text-white border-4 border-morandi-dark font-black text-5xl mario-btn rounded-full">下一題</button>`;
+}
+
+function nextTurn() {
+    state.activeTurnIdx = (state.activeTurnIdx + 1) % 3;
+    if(state.teams[state.activeTurnIdx].isEliminated) { nextTurn(); return; }
+    state.actingTeamIdx = state.activeTurnIdx;
+    state.isSpectating = false; state.isStealing = false; state.hasBeenStolen = false; state.isCoopMode = false;
+    state.ansTimer = 90; state.cardActive = null; state.currentTask = null;
+    state.riskMode = false; state.maskProtected = false; state.cardUsedThisTurn = false;
+    document.getElementById('mission-body').innerHTML = `<div id="draw-prompt" class="w-80 h-[500px] bg-white border-4 border-morandi-dark p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-all shadow-[12px_12px_0px_rgba(70,73,76,0.1)] active:scale-95 group rounded-[32px]" onclick="drawTask()"><div class="text-[120px] mb-8 group-hover:rotate-12 transition-transform">🎁</div><p class="text-5xl font-black text-center mb-6 text-morandi-dark leading-none">擊打方塊</p></div>`;
+    updateUI();
+}
+
+function endGame(winnerName) {
+    document.body.innerHTML = `
+        <div class="h-screen bg-morandi-bg flex flex-col items-center justify-center p-12 text-center border-[20px] border-morandi-dark">
+            <h1 class="text-8xl font-black mb-8 italic text-morandi-red drop-shadow-lg">挑戰結束！</h1>
+            <div class="bg-white border-4 border-morandi-dark p-20 shadow-[20px_20px_0px_rgba(0,0,0,0.1)] rounded-[40px] text-morandi-dark">
+                <p class="text-2xl font-bold mb-4 tracking-[0.3em]">本次冠軍隊伍</p>
+                <p class="text-7xl font-black underline decoration-8">${winnerName}</p>
+            </div>
+            <button onclick="location.reload()" class="mt-16 px-16 py-8 bg-morandi-red text-white mario-btn font-black text-4xl">重新開始</button>
+        </div>
+    `;
+}
+
+function logBattle(msg) {
+    const log = document.getElementById('battle-log');
+    const entry = document.createElement('div');
+    entry.className = "border-b border-white/5 py-1 flex gap-2";
+    entry.innerHTML = `<span class="text-morandi-yellow">></span> <span>${msg}</span>`;
+    log.prepend(entry);
+}
+
+function makeDraggable(el) {
+    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    const handle = el.querySelector(".drag-handle");
+    if (handle) handle.onmousedown = dragMouseDown;
+    function dragMouseDown(e) {
+        e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
+        document.onmouseup = closeDragElement; document.onmousemove = elementDrag;
+        el.style.zIndex = 1000;
+        document.querySelectorAll('.mario-block').forEach(p => { if(p !== el) p.style.zIndex = 40; });
+    }
+    function elementDrag(e) {
+        e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+        pos3 = e.clientX; pos4 = e.clientY;
+        el.style.top = (el.offsetTop - pos2) + "px"; el.style.left = (el.offsetLeft - pos1) + "px";
+    }
+    function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+}
+</script>
+</body>
+</html>
